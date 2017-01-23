@@ -11,6 +11,7 @@ import com.intellij.openapi.ui.popup.Balloon;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.psi.PsiJavaFile;
 import com.intellij.ui.JBColor;
+import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.TypeSpec;
@@ -25,28 +26,31 @@ import javax.lang.model.element.Modifier;
  * Created by admin on 2017/1/20.
  */
 public class ZFirstPluginAction extends AnAction {
+
     private Editor mEditor;
+
+    //current file content
     private String mContent;
 
     private void init(AnActionEvent e) {
-        mEditor = e.getData(PlatformDataKeys.EDITOR);
+        mEditor = (Editor) e.getData(PlatformDataKeys.EDITOR);
+        mContent = mEditor.getDocument().getText();
+        Log.show("mContent:" + mContent);
     }
 
 
     @Override
     public void actionPerformed(AnActionEvent e) {
         init(e);
-        mContent = mEditor.getDocument().getText();
-        //System.out.println(mContent);
         String[] words = mContent.split(" ");
+        //find out file name (CLassName)
         for (String word : words) {
             if (word.contains("Contract")) {
-                String className = word.substring(0, word.indexOf("Contract"));
-                //DialogUtils.showDebugMessage(className, "class name");
-                //System.out.println(className);
-                //System.out.println(word);
-                String currentPath = Utls.getCurrentPath(e, word);
-                System.out.println(currentPath);
+                //For example: word: CreateGroupContract ,moduleName: CreateGroup
+                String moduleName = word.substring(0, word.indexOf("Contract"));
+                Log.show("word:" + word + ", moduleName:" + moduleName);
+                String currentPath = Utils.getCurrentPath(e, word);
+                Log.show("get currentPath:" + currentPath);
 
                 //test for fill contract file
                 int lastIndex = mContent.lastIndexOf("}");
@@ -60,21 +64,19 @@ public class ZFirstPluginAction extends AnAction {
                         + "public interface " + "Model{\n}\n\n"
                         + "\n}";*/
 
-//Way 2 : use JavaPoet
-                MethodSpec main = MethodSpec.methodBuilder("main")
-                        .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
-                        .returns(void.class)
-                        .addParameter(String[].class, "args")
-                        .addStatement("$T.out.println($S)", System.class, "Hello, JavaPoet!")
+                //Way 2 : use JavaPoet(Recommend)
+                ClassName interfaceIBaseView = ClassName.get("cn.com.anlaiye.mvp", "IBaseView");
+                TypeSpec interfaceIView = TypeSpec.interfaceBuilder("IView")
+                        .addSuperinterface(interfaceIBaseView)
                         .build();
-                String content = mContent + main.toString() + "}";
 
+                mContent = mContent + interfaceIView.toString() + "}";
                 //wirte in runWriteAction
                 WriteCommandAction.runWriteCommandAction(mEditor.getProject(),
                         new Runnable() {
                             @Override
                             public void run() {
-                                mEditor.getDocument().setText(content);
+                                mEditor.getDocument().setText(mContent);
                             }
                         });
 
@@ -109,7 +111,7 @@ public class ZFirstPluginAction extends AnAction {
                     e1.printStackTrace();
                 }
 
-                Utls.refreshProject(e);
+                Utils.refreshProject(e);
 
 
             }
