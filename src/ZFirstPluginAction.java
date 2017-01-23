@@ -1,6 +1,5 @@
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.command.WriteCommandAction;
@@ -9,11 +8,9 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.ui.popup.Balloon;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
-import com.intellij.psi.PsiJavaFile;
 import com.intellij.ui.JBColor;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.JavaFile;
-import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.TypeSpec;
 
 import java.awt.Color;
@@ -35,7 +32,7 @@ public class ZFirstPluginAction extends AnAction {
     private void init(AnActionEvent e) {
         mEditor = (Editor) e.getData(PlatformDataKeys.EDITOR);
         mContent = mEditor.getDocument().getText();
-        Log.show("mContent:" + mContent);
+        //Log.show("mContent:" + mContent);
     }
 
 
@@ -52,11 +49,10 @@ public class ZFirstPluginAction extends AnAction {
                 String currentPath = Utils.getCurrentPath(e, word);
                 Log.show("get currentPath:" + currentPath);
 
-                //test for fill contract file
+                //Step 1 :fill contract file
                 int lastIndex = mContent.lastIndexOf("}");
                 mContent = mContent.substring(0, lastIndex);
                 DialogUtils.showDebugMessage(mContent, "debug");
-
 
                 //Way 1 :hard code way
 /*                String content = mContent + "public interface " + "View{\n}\n\n"
@@ -69,55 +65,52 @@ public class ZFirstPluginAction extends AnAction {
                 TypeSpec interfaceIView = TypeSpec.interfaceBuilder("IView")
                         .addSuperinterface(interfaceIBaseView)
                         .build();
-
-                mContent = mContent + interfaceIView.toString() + "}";
+                TypeSpec interfaceIPresenter = TypeSpec.interfaceBuilder("IPresenter")
+                        .build();
+                mContent = mContent
+                        + interfaceIView.toString()
+                        + "\n"
+                        + interfaceIPresenter.toString()
+                        + "}";
                 //wirte in runWriteAction
                 WriteCommandAction.runWriteCommandAction(mEditor.getProject(),
-                        new Runnable() {
-                            @Override
-                            public void run() {
-                                mEditor.getDocument().setText(mContent);
-                            }
-                        });
+                        () -> mEditor.getDocument().setText(mContent));
 
 
-                PsiJavaFile javaFile = (PsiJavaFile) e.getData(CommonDataKeys.PSI_FILE);
-                String packageName = javaFile.getPackageName();
+                //Step 2: create other file,(IView、IPresenter、IModel..)
+                String packageName = Utils.getPkgName(e);
+                Log.show("current package name is :" + packageName);
 
-                System.out.println("current package name is :" + packageName);
-
-
-                //test for create file
-
-                MethodSpec methodSpec = MethodSpec.methodBuilder("main")
-                        .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
-                        .returns(void.class)
-                        .addParameter(String[].class, "args")
-                        .addStatement("$T.out.println($S)", System.class, "Hello, JavaPoet!")
-                        .build();
-
-                TypeSpec Presenter = TypeSpec.classBuilder("className" + "Presenter2")
+                //Step 2.1: create PresenterImpl
+                TypeSpec classPresenter = TypeSpec.classBuilder(moduleName + "Presenter")
                         .addModifiers(Modifier.PUBLIC)
-                        .addMethod(methodSpec)
+                        .addSuperinterface(ClassName.get(packageName, word, "IPresenter"))
                         .build();
-
-                JavaFile outP = JavaFile.builder(packageName, Presenter)
+                JavaFile outP = JavaFile.builder(packageName, classPresenter)
                         .build();
                 try {
-                    System.out.println("????????");
                     outP.writeTo(new File("C:/Users/admin/IdeaProjects/Test/src"));
-                    System.out.println("!!!!!!!!!");
                 } catch (IOException e1) {
                     e1.printStackTrace();
                 }
 
+                //Step 2.2: create ViewImpl
+                TypeSpec classView = TypeSpec.classBuilder(moduleName + "Fragment")
+                        .addModifiers(Modifier.PUBLIC)
+                        .addSuperinterface(ClassName.get(packageName, word, "IView"))
+                        .build();
+                JavaFile outV = JavaFile.builder(packageName, classView)
+                        .build();
+                try {
+                    outV.writeTo(new File("C:/Users/admin/IdeaProjects/Test/src"));
+                } catch (IOException e1) {
+                    e1.printStackTrace();
+                }
+
+                //Step 3: refresh project
                 Utils.refreshProject(e);
-
-
+                break;
             }
-
-
-            //System.out.println(word);
         }
 
 
