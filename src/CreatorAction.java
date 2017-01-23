@@ -2,7 +2,6 @@ import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.application.Result;
 import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.project.Project;
@@ -11,7 +10,9 @@ import com.intellij.openapi.ui.popup.Balloon;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.ui.JBColor;
 import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.JavaFile;
+import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.TypeSpec;
 
 import java.awt.Color;
@@ -28,8 +29,7 @@ import javax.lang.model.element.Modifier;
  * Created by admin on 2017/1/20.
  */
 public class CreatorAction extends AnAction {
-
-    private AnActionEvent mAnActionEvent;
+    public static final String PLUGIN_NAME = "Mvp Creator";
 
     private Editor mEditor;
 
@@ -37,7 +37,7 @@ public class CreatorAction extends AnAction {
     private String mContent;
 
     private void init(AnActionEvent e) {
-        mEditor = (Editor) e.getData(PlatformDataKeys.EDITOR);
+        mEditor = e.getData(PlatformDataKeys.EDITOR);
         mContent = mEditor.getDocument().getText();
         //Log.show("mContent:" + mContent);
     }
@@ -90,12 +90,29 @@ public class CreatorAction extends AnAction {
                 String packageName = Utils.getPkgName(e);
                 Log.show("current package name is :" + packageName);
                 DialogUtils.showDebugMessage(packageName, "debug");
-                ClassName iPresenter = ClassName.get(packageName, word+".IPresenter");
+                ClassName iPresenter = ClassName.get(packageName, word + ".IPresenter");
+                ClassName iView = ClassName.get(packageName, word, "IView");
                 DialogUtils.showDebugMessage(iPresenter.toString(), "debug");
                 //Step 2.1: create PresenterImpl
+                FieldSpec fieldView = FieldSpec.builder(iView, "mView")
+                        .build();
+                FieldSpec fieldTag = FieldSpec.builder(String.class, "mTag")
+                        .build();
+                MethodSpec constructorPresenter = MethodSpec.constructorBuilder()
+                        .addModifiers(Modifier.PUBLIC)
+                        .addParameter(iView, "view")
+                        .addParameter(String.class, "tag")
+                        .addStatement("mView = view")
+                        .addStatement("mTag = tag")
+                        .build();
+
                 TypeSpec classPresenter = TypeSpec.classBuilder(moduleName + "Presenter")
+                        .addJavadoc("This file is auto created by " + PLUGIN_NAME)
                         .addModifiers(Modifier.PUBLIC)
                         .addSuperinterface(iPresenter)
+                        .addField(fieldView)
+                        .addField(fieldTag)
+                        .addMethod(constructorPresenter)
                         .build();
                 DialogUtils.showDebugMessage(classPresenter.toString(), "debug");
                 JavaFile outP = JavaFile.builder(packageName, classPresenter)
@@ -111,9 +128,13 @@ public class CreatorAction extends AnAction {
                 writeJavaFile(currentPath, classPresenter, outP);
 
                 //Step 2.2: create ViewImpl
+                ClassName classBaseLoadingFragment = ClassName.get("cn.com.anlaiye.base", "BaseBindingLoadingFragment");
+
                 TypeSpec classView = TypeSpec.classBuilder(moduleName + "Fragment")
+                        .addJavadoc("This file is auto created by " + PLUGIN_NAME)
                         .addModifiers(Modifier.PUBLIC)
-                        .addSuperinterface(ClassName.get(packageName, word, "IView"))
+                        .addSuperinterface(iView)
+                        .superclass(classBaseLoadingFragment)
                         .build();
                 JavaFile outV = JavaFile.builder(packageName, classView)
                         .build();
@@ -188,28 +209,16 @@ public class CreatorAction extends AnAction {
 
     private void writeJavaFile(String currentPath, TypeSpec targetClass, JavaFile targetJavaFile) {
         DialogUtils.showDebugMessage(currentPath, "debug");
-        ApplicationManager.getApplication().invokeLater(new Runnable() {
-            @Override
-            public void run() {
-                new WriteCommandAction(mEditor.getProject()) {
-                    @Override
-                    protected void run(Result result) throws Throwable {
-                        File fileViewImpl = new File(currentPath + File.separator + targetClass.name + ".java");
-                        try {
-                            fileViewImpl.createNewFile();
-                            Writer w = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(fileViewImpl), "UTF-8"));
-                            w.write(targetJavaFile.toString());
-                            w.flush();
-                            w.close();
-                            Utils.refreshProject(mAnActionEvent);
-                        } catch (IOException e1) {
-                            e1.printStackTrace();
-                        }
-                    }
-                }.execute();
-            }
-        });
-
+        File fileViewImpl = new File(currentPath + File.separator + targetClass.name + ".java");
+        try {
+            fileViewImpl.createNewFile();
+            Writer w = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(fileViewImpl), "UTF-8"));
+            w.write(targetJavaFile.toString());
+            w.flush();
+            w.close();
+        } catch (IOException e1) {
+            e1.printStackTrace();
+        }
     }
 
     private void showDialog(String title, String content) {
