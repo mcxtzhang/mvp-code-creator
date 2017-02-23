@@ -10,9 +10,7 @@ import com.intellij.openapi.ui.popup.Balloon;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.ui.JBColor;
 import com.squareup.javapoet.ClassName;
-import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.JavaFile;
-import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.TypeSpec;
 
 import java.awt.Color;
@@ -68,13 +66,16 @@ public class CreatorAction extends AnAction {
                         + "\n}";*/
 
                 //Way 2 : use JavaPoet(Recommend)
-                ClassName interfaceIBaseView = ClassName.get("cn.com.anlaiye.mvp", "IBaseView");
+                ClassName interfaceIBaseView = ClassName.get(Config.PKG_BASE_INTERFACE_VIEW, Config.CLASS_BASE_INTERFACE_VIEW);
                 TypeSpec interfaceIView = TypeSpec.interfaceBuilder("IView")
                         .addModifiers(Modifier.PUBLIC)
                         .addSuperinterface(interfaceIBaseView)
                         .build();
+
+                ClassName interfaceIBasePresenter = ClassName.get(Config.PKG_BASE_INTERFACE_PRESENTER, Config.CLASS_BASE_INTERFACE_PRESENTER);
                 TypeSpec interfaceIPresenter = TypeSpec.interfaceBuilder("IPresenter")
                         .addModifiers(Modifier.PUBLIC)
+                        .addSuperinterface(interfaceIBasePresenter)
                         .build();
                 mContent = mContent
                         + interfaceIView.toString()
@@ -94,7 +95,7 @@ public class CreatorAction extends AnAction {
                 ClassName iView = ClassName.get(packageName, word, "IView");
                 DialogUtils.showDebugMessage(iPresenter.toString(), "debug");
                 //Step 2.1: create PresenterImpl
-                FieldSpec fieldView = FieldSpec.builder(iView, "mView")
+/*                FieldSpec fieldView = FieldSpec.builder(iView, "mView")
                         .build();
                 FieldSpec fieldTag = FieldSpec.builder(String.class, "mTag")
                         .build();
@@ -104,15 +105,15 @@ public class CreatorAction extends AnAction {
                         .addParameter(String.class, "tag")
                         .addStatement("mView = view")
                         .addStatement("mTag = tag")
-                        .build();
+                        .build();*/
+                //extend basePresenter
+                ClassName classBasePresenter = ClassName.get("cn.com.anlaiye.mvp", "BasePresenter");
 
                 TypeSpec classPresenter = TypeSpec.classBuilder(moduleName + "Presenter")
                         .addJavadoc("This file is auto created by " + PLUGIN_NAME)
                         .addModifiers(Modifier.PUBLIC)
+                        .superclass(classBasePresenter)
                         .addSuperinterface(iPresenter)
-                        .addField(fieldView)
-                        .addField(fieldTag)
-                        .addMethod(constructorPresenter)
                         .build();
                 DialogUtils.showDebugMessage(classPresenter.toString(), "debug");
                 JavaFile outP = JavaFile.builder(packageName, classPresenter)
