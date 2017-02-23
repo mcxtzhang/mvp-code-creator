@@ -11,6 +11,7 @@ import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.ui.JBColor;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.JavaFile;
+import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeSpec;
 
 import java.awt.Color;
@@ -107,12 +108,15 @@ public class CreatorAction extends AnAction {
                         .addStatement("mTag = tag")
                         .build();*/
                 //extend basePresenter
+
                 ClassName classBasePresenter = ClassName.get("cn.com.anlaiye.mvp", "BasePresenter");
+                ClassName classTypeIView = ClassName.get(packageName, moduleName + "Contract", "IView");
+                ParameterizedTypeName typeParentPresenter = ParameterizedTypeName.get(classBasePresenter, classTypeIView);
 
                 TypeSpec classPresenter = TypeSpec.classBuilder(moduleName + "Presenter")
                         .addJavadoc("This file is auto created by " + PLUGIN_NAME)
                         .addModifiers(Modifier.PUBLIC)
-                        .superclass(classBasePresenter)
+                        .superclass(typeParentPresenter)
                         .addSuperinterface(iPresenter)
                         .build();
                 DialogUtils.showDebugMessage(classPresenter.toString(), "debug");
@@ -129,13 +133,15 @@ public class CreatorAction extends AnAction {
                 writeJavaFile(currentPath, classPresenter, outP);
 
                 //Step 2.2: create ViewImpl
-                ClassName classBaseLoadingFragment = ClassName.get("cn.com.anlaiye.base", "BaseBindingLoadingFragment");
+                ClassName classBaseLoadingFragment = ClassName.get("cn.com.anlaiye.base.databinding", "BaseBindingLoadingFragment");
+                ClassName classTypeIPresenter = ClassName.get(packageName, moduleName + "Contract", "IPresenter");
+                ParameterizedTypeName typeParentFragment = ParameterizedTypeName.get(classBaseLoadingFragment, classTypeIPresenter);
 
                 TypeSpec classView = TypeSpec.classBuilder(moduleName + "Fragment")
                         .addJavadoc("This file is auto created by " + PLUGIN_NAME)
                         .addModifiers(Modifier.PUBLIC)
                         .addSuperinterface(iView)
-                        .superclass(classBaseLoadingFragment)
+                        .superclass(typeParentFragment)
                         .build();
                 JavaFile outV = JavaFile.builder(packageName, classView)
                         .build();

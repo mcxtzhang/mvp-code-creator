@@ -14,7 +14,7 @@ public class DialogUtils {
     }
 
     public static void showDebugMessage(String context, String title){
-        if(true) {
+        if(false) {
             Messages.showMessageDialog(context, title, Messages.getErrorIcon());
         }
     }
