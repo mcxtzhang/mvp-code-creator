@@ -68,7 +68,7 @@ public class CreatorAction extends AnAction {
                         + "\n}";*/
 
                 //Way 2 : use JavaPoet(Recommend)
-                ClassName interfaceIBaseView = ClassName.get("cn.com.anlaiye.mvp", "IBaseView");
+                ClassName interfaceIBaseView = ClassName.get("cn.com.anlaiye.rx.lifecycle", "IRxLifecycleView");
                 TypeSpec interfaceIView = TypeSpec.interfaceBuilder("IView")
                         .addModifiers(Modifier.PUBLIC)
                         .addSuperinterface(interfaceIBaseView)
@@ -128,7 +128,7 @@ public class CreatorAction extends AnAction {
                 writeJavaFile(currentPath, classPresenter, outP);
 
                 //Step 2.2: create ViewImpl
-                ClassName classBaseLoadingFragment = ClassName.get("cn.com.anlaiye.base", "BaseBindingLoadingFragment");
+                ClassName classBaseLoadingFragment = ClassName.get("cn.com.anlaiye.rx", "BaseRxLoadingFragment");
 
                 TypeSpec classView = TypeSpec.classBuilder(moduleName + "Fragment")
                         .addJavadoc("This file is auto created by " + PLUGIN_NAME)
