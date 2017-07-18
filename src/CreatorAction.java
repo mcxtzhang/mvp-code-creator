@@ -68,7 +68,7 @@ public class CreatorAction extends AnAction {
                         + "\n}";*/
 
                 //Way 2 : use JavaPoet(Recommend)
-                ClassName interfaceIBaseView = ClassName.get("cn.com.anlaiye.rx.lifecycle", "IRxLifecycleView");
+                ClassName interfaceIBaseView = ClassName.get("cn.com.anlaiye.rx", "IBaseRxView");
                 TypeSpec interfaceIView = TypeSpec.interfaceBuilder("IView")
                         .addModifiers(Modifier.PUBLIC)
                         .addSuperinterface(interfaceIBaseView)
